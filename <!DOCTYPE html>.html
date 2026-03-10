@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NegotiateIQ — AI Salary Negotiation Coach</title>
+<link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;600;700&family=Cabinet+Grotesk:wght@400;500;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Epilogue:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:     #07090e;
+  --bg2:    #0d1018;
+  --p1:     #111520;
+  --p2:     #171c2a;
+  --p3:     #1e2535;
+  --gold:   #f5c842;
+  --gold2:  #fde68a;
+  --gold3:  #fffbeb;
+  --green:  #22c55e;
+  --green2: #86efac;
+  --red:    #ef4444;
+  --blue:   #3b82f6;
+  --blue2:  #93c5fd;
+  --text:   #f0f4ff;
+  --muted:  #5a6480;
+  --muted2: #8892b0;
+  --line:   rgba(255,255,255,0.06);
+  --line2:  rgba(255,255,255,0.1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Epilogue',sans-serif}
+
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 60% 70% at 0% 40%,rgba(245,200,66,.07) 0%,transparent 60%),
+    radial-gradient(ellipse 45% 55% at 100% 70%,rgba(34,197,94,.05) 0%,transparent 60%),
+    radial-gradient(ellipse 30% 40% at 55% 0%,rgba(59,130,246,.04) 0%,transparent 60%)}
+
+/* ══ SHELL ══ */
+.shell{position:relative;z-index:2;display:grid;
+  grid-template-columns:60px 290px 1fr 340px;
+  grid-template-rows:56px 1fr;
+  height:100vh;width:100vw}
+
+/* ══ TOPBAR ══ */
+.topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;
+  padding:0 22px;background:rgba(7,9,14,.98);border-bottom:1px solid var(--line2);
+  backdrop-filter:blur(20px)}
+.tb-brand{display:flex;align-items:center;gap:11px}
+.tb-logo{width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,var(--gold),#e8a800);
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  box-shadow:0 0 20px rgba(245,200,66,.4)}
+.tb-name{font-family:'Syne',sans-serif;font-weight:800;font-size:1.2rem;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.tb-sub{font-size:.56rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.15em;text-transform:uppercase}
+
+.tb-center{display:flex;align-items:center;gap:6px}
+.phase-pill{padding:5px 12px;border-radius:20px;font-size:.6rem;
+  font-family:'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;
+  border:1px solid var(--line2);color:var(--muted2);cursor:default;transition:all .3s}
+.phase-pill.done{background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:var(--green)}
+.phase-pill.active{background:rgba(245,200,66,.12);border-color:rgba(245,200,66,.35);color:var(--gold)}
+.phase-arrow{color:var(--muted);font-size:.7rem}
+
+.tb-right{display:flex;align-items:center;gap:14px}
+.ai-badge{display:flex;align-items:center;gap:6px;font-size:.6rem;
+  font-family:'DM Mono',monospace;letter-spacing:.08em;color:var(--muted2)}
+.ai-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);
+  box-shadow:0 0 8px var(--gold);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+.tb-clock{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted)}
+
+/* ══ NAV RAIL ══ */
+.nav-rail{background:var(--bg2);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px}
+.ri{width:44px;height:44px;border-radius:12px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;cursor:pointer;
+  border:1px solid transparent;transition:all .2s}
+.ri:hover{background:rgba(245,200,66,.08);border-color:rgba(245,200,66,.2)}
+.ri.on{background:rgba(245,200,66,.14);border-color:rgba(245,200,66,.35)}
+.ri-ico{font-size:1rem}
+.ri-lbl{font-size:.44rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-family:'DM Mono',monospace}
+.ri.on .ri-lbl{color:var(--gold2)}
+.rail-sep{width:26px;height:1px;background:var(--line);margin:5px 0}
+
+/* ══ LEFT — PROFILE INPUT ══ */
+.left-panel{background:var(--p1);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;overflow:hidden}
+
+.lp-head{padding:16px 18px 12px;border-bottom:1px solid var(--line);flex-shrink:0;background:var(--p2)}
+.lp-title{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:2px}
+.lp-sub{font-size:.58rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.1em}
+
+.lp-body{flex:1;overflow-y:auto;padding:14px 18px;
+  scrollbar-width:thin;scrollbar-color:var(--p3) transparent}
+
+.field{margin-bottom:14px}
+.f-label{font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;display:block}
+.f-input,.f-select,.f-textarea{width:100%;background:var(--p2);border:1px solid var(--line);
+  border-radius:9px;padding:9px 12px;font-family:'Epilogue',sans-serif;
+  font-size:.78rem;color:var(--text);outline:none;transition:border-color .2s;appearance:none}
+.f-input:focus,.f-select:focus,.f-textarea:focus{border-color:rgba(245,200,66,.45);background:var(--p3)}
+.f-input::placeholder,.f-textarea::placeholder{color:var(--muted)}
+.f-textarea{resize:none;line-height:1.6}
+.f-select option{background:var(--p2);color:var(--text)}
+
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.salary-display{font-family:'DM Mono',monospace;font-size:.72rem;color:var(--gold);
+  margin-top:4px;text-align:right}
+
+.skills-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.skill-tag{padding:4px 10px;border-radius:20px;font-size:.62rem;
+  background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.2);
+  color:var(--gold2);cursor:pointer;transition:all .15s;font-family:'DM Mono',monospace}
+.skill-tag:hover{background:rgba(245,200,66,.2)}
+.skill-tag.sel{background:rgba(245,200,66,.25);border-color:rgba(245,200,66,.5)}
+
+.divider{height:1px;background:var(--line);margin:12px 0}
+
+.btn-analyze{width:100%;padding:12px;border:none;border-radius:10px;cursor:pointer;
+  background:linear-gradient(135deg,var(--gold),#e8a800);
+  font-family:'Syne',sans-serif;font-weight:700;font-size:.8rem;
+  letter-spacing:.08em;text-transform:uppercase;color:#07090e;
+  transition:all .2s;box-shadow:0 4px 20px rgba(245,200,66,.25);
+  display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-analyze:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 30px rgba(245,200,66,.4)}
+.btn-analyze:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+/* ══ CENTER — STRATEGY ══ */
+.center-panel{background:var(--bg2);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;overflow:hidden}
+
+.cp-head{padding:14px 22px;border-bottom:1px solid var(--line);flex-shrink:0;
+  background:var(--p1);display:flex;align-items:center;justify-content:space-between}
+.cp-title{font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem}
+.cp-sub{font-size:.58rem;color:var(--muted);font-family:'DM Mono',monospace}
+
+/* salary range meter */
+.salary-meter{display:flex;align-items:center;gap:10px}
+.meter-lbl{font-size:.58rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em}
+.meter-bar{width:100px;height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.meter-fill{height:100%;background:linear-gradient(to right,var(--green),var(--gold));border-radius:3px;transition:width 1s ease}
+.meter-val{font-size:.72rem;font-weight:700;font-family:'DM Mono',monospace;color:var(--gold)}
+
+.cp-body{flex:1;overflow-y:auto;padding:18px 22px;
+  scrollbar-width:thin;scrollbar-color:var(--p3) transparent}
+
+/* Empty state */
+.empty-state{height:100%;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:14px;opacity:.35;text-align:center;padding:30px}
+.empty-icon{font-size:3rem}
+.empty-txt{font-size:.72rem;color:var(--muted);line-height:1.7}
+
+/* Strategy cards */
+.strat-card{background:var(--p1);border:1px solid var(--line);border-radius:14px;
+  padding:16px;margin-bottom:12px;border-left:3px solid;
+  animation:slideUp .4s ease forwards;opacity:0;transform:translateY(12px)}
+@keyframes slideUp{to{opacity:1;transform:translateY(0)}}
+.strat-card:nth-child(1){animation-delay:.05s;border-color:var(--gold)}
+.strat-card:nth-child(2){animation-delay:.12s;border-color:var(--green)}
+.strat-card:nth-child(3){animation-delay:.19s;border-color:var(--blue)}
+.strat-card:nth-child(4){animation-delay:.26s;border-color:#a78bfa}
+.strat-card:nth-child(5){animation-delay:.33s;border-color:#f472b6}
+
+.sc-type{font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;
+  font-family:'DM Mono',monospace;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.sc-title{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;margin-bottom:6px}
+.sc-desc{font-size:.74rem;color:var(--muted2);line-height:1.7}
+.sc-script{background:var(--p2);border-radius:8px;padding:10px 12px;margin-top:10px;
+  font-size:.72rem;font-style:italic;color:var(--gold3);line-height:1.7;border-left:2px solid var(--gold)}
+
+/* salary ranges */
+.range-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.range-card{background:var(--p1);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+.range-val{font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;margin-bottom:3px}
+.range-lbl{font-size:.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-family:'DM Mono',monospace}
+.range-badge{font-size:.58rem;margin-top:5px;padding:2px 7px;border-radius:10px;display:inline-block}
+
+/* market data */
+.market-row{display:flex;align-items:center;justify-content:space-between;
+  padding:9px 12px;background:var(--p2);border-radius:9px;margin-bottom:6px;border:1px solid var(--line)}
+.mr-lbl{font-size:.72rem;font-weight:600}
+.mr-sub{font-size:.58rem;color:var(--muted);font-family:'DM Mono',monospace}
+.mr-val{font-family:'DM Mono',monospace;font-size:.75rem;font-weight:700}
+
+/* loading */
+.loading-state{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;height:100%;gap:16px}
+.spin{width:38px;height:38px;border:2px solid rgba(245,200,66,.15);
+  border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{font-size:.65rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.1em}
+.load-steps{display:flex;flex-direction:column;gap:5px;align-items:center}
+.load-step{font-size:.62rem;color:var(--muted);opacity:0;animation:fadeIn .5s forwards}
+.load-step:nth-child(1){animation-delay:.3s}
+.load-step:nth-child(2){animation-delay:1.2s}
+.load-step:nth-child(3){animation-delay:2.1s}
+@keyframes fadeIn{to{opacity:1}}
+
+/* ══ RIGHT — AI COACH CHAT ══ */
+.right-panel{background:var(--p1);display:flex;flex-direction:column;overflow:hidden}
+.rp-head{padding:14px 18px 12px;border-bottom:1px solid var(--line);flex-shrink:0;background:var(--p2)}
+.rp-title{font-family:'Syne',sans-serif;font-weight:700;font-size:.92rem;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:2px}
+.rp-sub{font-size:.58rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:.1em}
+.rp-status{display:flex;align-items:center;gap:6px;margin-top:7px}
+.rp-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);
+  box-shadow:0 0 7px var(--gold);animation:pulse 2s infinite}
+.rp-stxt{font-size:.58rem;color:var(--muted2);font-family:'DM Mono',monospace}
+
+.chips{display:flex;flex-wrap:wrap;gap:5px;padding:10px 16px 8px;
+  border-bottom:1px solid var(--line);flex-shrink:0}
+.chip{padding:5px 10px;border-radius:20px;background:rgba(245,200,66,.08);
+  border:1px solid rgba(245,200,66,.18);font-size:.58rem;color:var(--gold2);
+  cursor:pointer;transition:all .15s;font-family:'DM Mono',monospace;white-space:nowrap}
+.chip:hover{background:rgba(245,200,66,.18);border-color:rgba(245,200,66,.4)}
+
+.chat-feed{flex:1;overflow-y:auto;padding:12px 16px;
+  display:flex;flex-direction:column;gap:9px;
+  scrollbar-width:thin;scrollbar-color:var(--p3) transparent}
+.msg{max-width:88%;font-size:.76rem;line-height:1.65;padding:10px 13px;border-radius:13px}
+.msg.ai{align-self:flex-start;background:var(--p2);border:1px solid var(--line);
+  border-bottom-left-radius:4px;color:var(--gold3)}
+.msg.user{align-self:flex-end;
+  background:linear-gradient(135deg,rgba(245,200,66,.2),rgba(34,197,94,.12));
+  border:1px solid rgba(245,200,66,.2);border-bottom-right-radius:4px}
+.msg-from{font-size:.5rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--gold);font-family:'DM Mono',monospace;margin-bottom:3px}
+
+.chat-foot{padding:10px 14px;border-top:1px solid var(--line);
+  display:flex;gap:8px;align-items:flex-end;flex-shrink:0;background:var(--p2)}
+.chat-inp{flex:1;background:var(--p3);border:1px solid var(--line);border-radius:11px;
+  padding:9px 13px;outline:none;resize:none;font-family:'Epilogue',sans-serif;
+  font-size:.76rem;color:var(--text);line-height:1.5;transition:border-color .2s}
+.chat-inp:focus{border-color:rgba(245,200,66,.4);background:var(--p1)}
+.chat-inp::placeholder{color:var(--muted)}
+.send-btn{width:40px;height:40px;border-radius:11px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--gold),#e8a800);
+  border:none;cursor:pointer;color:#07090e;font-size:1rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 14px rgba(245,200,66,.3);transition:all .15s}
+.send-btn:hover{transform:scale(1.07)}
+.send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* ══ MODALS ══ */
+.modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(4,5,10,.92);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .3s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-box{background:var(--p1);border:1px solid var(--line2);border-radius:20px;
+  padding:26px;max-width:90vw;position:relative;
+  animation:modalIn .35s cubic-bezier(.34,1.56,.64,1)}
+@keyframes modalIn{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+.m-close{position:absolute;top:14px;right:16px;background:transparent;border:none;
+  color:var(--muted);cursor:pointer;font-size:1.2rem;transition:color .15s}
+.m-close:hover{color:var(--text)}
+.m-title{font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:16px}
+
+/* Script practice modal */
+.script-box{background:var(--p2);border-radius:12px;padding:16px;margin-bottom:14px;
+  border-left:3px solid var(--gold)}
+.script-line{font-size:.8rem;line-height:1.8;color:var(--gold3);font-style:italic}
+.script-note{font-size:.65rem;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace}
+
+/* Market data modal */
+.mkt-table{width:100%;border-collapse:collapse}
+.mkt-table th{font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--muted);font-family:'DM Mono',monospace;padding:8px 12px;
+  border-bottom:1px solid var(--line);text-align:left}
+.mkt-table td{padding:10px 12px;font-size:.76rem;border-bottom:1px solid rgba(255,255,255,.04)}
+.mkt-table tr:hover td{background:rgba(245,200,66,.04)}
+
+/* Checklist modal */
+.check-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;
+  background:var(--p2);border-radius:10px;margin-bottom:7px;cursor:pointer;transition:all .2s;border:1px solid var(--line)}
+.check-item:hover{border-color:rgba(245,200,66,.3)}
+.check-item.checked{background:rgba(34,197,94,.06);border-color:rgba(34,197,94,.2)}
+.chk-box{width:20px;height:20px;border-radius:6px;border:2px solid var(--line2);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;margin-top:1px}
+.check-item.checked .chk-box{background:var(--green);border-color:var(--green)}
+.chk-txt{font-size:.76rem;line-height:1.5}
+.chk-sub{font-size:.6rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px}
+
+/* Toast */
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(70px);
+  z-index:600;background:var(--p2);border:1px solid rgba(245,200,66,.3);
+  border-radius:12px;padding:11px 20px;font-size:.74rem;color:var(--gold2);
+  font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,.5);
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .35s;
+  opacity:0;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--p3);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ══ MODALS ══ -->
+
+<!-- SCRIPTS MODAL -->
+<div class="modal-overlay" id="scriptsModal">
+  <div class="modal-box" style="width:520px">
+    <button class="m-close" onclick="closeM('scriptsModal')">✕</button>
+    <div class="m-title">🎙️ Negotiation Scripts</div>
+    <div class="script-box">
+      <div style="font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);font-family:'DM Mono',monospace;margin-bottom:8px">Opening Move</div>
+      <div class="script-line">"Thank you so much for the offer. I'm genuinely excited about this role and the team. I did want to discuss the compensation — based on my research and experience, I was expecting something in the range of [Target]. Is there flexibility there?"</div>
+      <div class="script-note">💡 Always anchor with gratitude first. Never name a number below your target.</div>
+    </div>
+    <div class="script-box" style="border-color:var(--green)">
+      <div style="font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:8px">Counter Offer</div>
+      <div class="script-line">"I appreciate you working with me on this. I'm still a bit below where I need to be. Given my [specific skill/achievement], would you be able to get closer to [counter number]?"</div>
+      <div class="script-note">💡 Always give a reason. Never counter without justification.</div>
+    </div>
+    <div class="script-box" style="border-color:var(--blue)">
+      <div style="font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--blue2);font-family:'DM Mono',monospace;margin-bottom:8px">If They Say No</div>
+      <div class="script-line">"I understand there may be constraints. Could we explore other parts of the package — a signing bonus, extra PTO, or an earlier performance review at 6 months?"</div>
+      <div class="script-note">💡 Never accept the first "no". Always negotiate the full package.</div>
+    </div>
+    <div class="script-box" style="border-color:#a78bfa">
+      <div style="font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:#c4b5fd;font-family:'DM Mono',monospace;margin-bottom:8px">Closing</div>
+      <div class="script-line">"This sounds like a great fit, and I'm excited to contribute. I'll take a day to review everything carefully and get back to you tomorrow — does that work?"</div>
+      <div class="script-note">💡 Never accept on the spot. Always take 24 hours minimum.</div>
+    </div>
+  </div>
+</div>
+
+<!-- MARKET DATA MODAL -->
+<div class="modal-overlay" id="marketModal">
+  <div class="modal-box" style="width:540px">
+    <button class="m-close" onclick="closeM('marketModal')">✕</button>
+    <div class="m-title">📊 India Salary Market Data 2025</div>
+    <table class="mkt-table">
+      <thead><tr><th>Role</th><th>Experience</th><th>Low</th><th>Median</th><th>High</th></tr></thead>
+      <tbody>
+        <tr><td>Software Engineer</td><td>0-2 yrs</td><td style="color:var(--muted2)">₹4L</td><td style="color:var(--gold)">₹8L</td><td style="color:var(--green)">₹15L</td></tr>
+        <tr><td>Software Engineer</td><td>3-5 yrs</td><td style="color:var(--muted2)">₹12L</td><td style="color:var(--gold)">₹20L</td><td style="color:var(--green)">₹35L</td></tr>
+        <tr><td>Data Scientist</td><td>2-4 yrs</td><td style="color:var(--muted2)">₹10L</td><td style="color:var(--gold)">₹18L</td><td style="color:var(--green)">₹30L</td></tr>
+        <tr><td>Product Manager</td><td>3-6 yrs</td><td style="color:var(--muted2)">₹15L</td><td style="color:var(--gold)">₹28L</td><td style="color:var(--green)">₹50L</td></tr>
+        <tr><td>UX Designer</td><td>2-5 yrs</td><td style="color:var(--muted2)">₹8L</td><td style="color:var(--gold)">₹15L</td><td style="color:var(--green)">₹28L</td></tr>
+        <tr><td>Marketing Manager</td><td>3-6 yrs</td><td style="color:var(--muted2)">₹8L</td><td style="color:var(--gold)">₹16L</td><td style="color:var(--green)">₹30L</td></tr>
+        <tr><td>DevOps Engineer</td><td>2-5 yrs</td><td style="color:var(--muted2)">₹10L</td><td style="color:var(--gold)">₹20L</td><td style="color:var(--green)">₹38L</td></tr>
+        <tr><td>AI/ML Engineer</td><td>2-5 yrs</td><td style="color:var(--muted2)">₹14L</td><td style="color:var(--gold)">₹26L</td><td style="color:var(--green)">₹50L</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px;font-size:.62rem;color:var(--muted);font-family:'DM Mono',monospace">Source: AmbitionBox, Glassdoor, LinkedIn Salary Insights India 2025</div>
+  </div>
+</div>
+
+<!-- CHECKLIST MODAL -->
+<div class="modal-overlay" id="checkModal">
+  <div class="modal-box" style="width:480px">
+    <button class="m-close" onclick="closeM('checkModal')">✕</button>
+    <div class="m-title">✅ Negotiation Prep Checklist</div>
+    <div id="checkList">
+      <div class="check-item" onclick="toggleCheck(this)"><div class="chk-box"></div><div><div class="chk-txt">Research market salary ranges for your exact role + location</div><div class="chk-sub">Use AmbitionBox, Glassdoor, LinkedIn Salary</div></div></div>
+      <div class="check-item" onclick="toggleCheck(this)"><div class="chk-box"></div><div><div class="chk-txt">Know your BATNA (Best Alternative to Negotiated Agreement)</div><div class="chk-sub">What's your walkaway point? Do you have competing offers?</div></div></div>
+      <div class="check-item" onclick="toggleCheck(this)"><div class="chk-box"></div><div><div class="chk-txt">List 3 specific achievements with measurable impact</div><div class="chk-sub">Numbers talk: "increased sales by 40%", "reduced bugs by 60%"</div></div></div>
+      <div class="check-item" onclick="toggleCheck(this)"><div class="chk-box"></div><div><div class="chk-txt">Decide your target, realistic, and minimum salary</div><div class="chk-sub">Target = 20% above minimum. Ask for target, accept realistic.</div></div></div>
+      <div class="check-item" onclick="toggleCheck(this)"><div class="chk-box"></div><div><div class="chk-txt">Practice your opening script out loud 5 times</div><div class="chk-sub">Sounds awkward in your head? It won't once you say it aloud.</div></div></div>
+      <div class="check-item" onclick="toggleCheck(this)"><div class="chk-box"></div><div><div class="chk-txt">Prepare for "What's your current salary?" question</div><div class="chk-sub">You can decline to share in most states/countries. Redirect to expectations.</div></div></div>
+      <div class="check-item" onclick="toggleCheck(this)"><div class="chk-box"></div><div><div class="chk-txt">Know the full package: bonus, equity, PTO, remote, health</div><div class="chk-sub">Salary is just one lever. Total comp matters.</div></div></div>
+      <div class="check-item" onclick="toggleCheck(this)"><div class="chk-box"></div><div><div class="chk-txt">Never accept on the spot — always ask for 24 hours</div><div class="chk-sub">"I'm excited about this role. Can I take a day to review the full offer?"</div></div></div>
+    </div>
+    <div style="margin-top:14px;text-align:center;font-size:.65rem;color:var(--muted);font-family:'DM Mono',monospace" id="checkProgress">0 / 8 completed</div>
+  </div>
+</div>
+
+<!-- RESOURCES MODAL -->
+<div class="modal-overlay" id="resourcesModal">
+  <div class="modal-box" style="width:480px">
+    <button class="m-close" onclick="closeM('resourcesModal')">✕</button>
+    <div class="m-title">📚 Salary Research Resources</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="check-item" style="cursor:default" onclick="toast('🌐 Opening AmbitionBox...')"><div class="chk-box" style="background:var(--gold);border-color:var(--gold);color:#07090e;font-size:.7rem">🏢</div><div><div class="chk-txt">AmbitionBox — India's #1 salary database</div><div class="chk-sub">ambitionbox.com · Best for Indian companies</div></div></div>
+      <div class="check-item" style="cursor:default" onclick="toast('🌐 Opening Glassdoor...')"><div class="chk-box" style="background:var(--green);border-color:var(--green);font-size:.7rem">🟢</div><div><div class="chk-txt">Glassdoor — Salaries + company reviews</div><div class="chk-sub">glassdoor.co.in · Global + India data</div></div></div>
+      <div class="check-item" style="cursor:default" onclick="toast('🌐 Opening LinkedIn Salary...')"><div class="chk-box" style="background:var(--blue);border-color:var(--blue);font-size:.7rem">💼</div><div><div class="chk-txt">LinkedIn Salary — Role-based compensation</div><div class="chk-sub">linkedin.com/salary · Filter by location & exp</div></div></div>
+      <div class="check-item" style="cursor:default" onclick="toast('🌐 Opening Levels.fyi...')"><div class="chk-box" style="background:#a78bfa;border-color:#a78bfa;font-size:.7rem">📈</div><div><div class="chk-txt">Levels.fyi — Tech compensation breakdown</div><div class="chk-sub">levels.fyi · Best for Software/Product roles</div></div></div>
+      <div class="check-item" style="cursor:default" onclick="toast('🌐 Opening Payscale...')"><div class="chk-box" style="background:#f472b6;border-color:#f472b6;font-size:.7rem">💰</div><div><div class="chk-txt">Payscale — Personalized salary report</div><div class="chk-sub">payscale.com · Skill-adjusted estimates</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-box" style="width:420px">
+    <button class="m-close" onclick="closeM('settingsModal')">✕</button>
+    <div class="m-title">⚙️ Settings</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="market-row" style="cursor:pointer" onclick="toast('🌐 Currency set to INR ₹')"><div><div class="mr-lbl">Currency</div><div class="mr-sub">Salary display format</div></div><div class="mr-val" style="color:var(--gold)">₹ INR</div></div>
+      <div class="market-row" style="cursor:pointer" onclick="toast('📍 Region set to India')"><div><div class="mr-lbl">Region</div><div class="mr-sub">Market data location</div></div><div class="mr-val" style="color:var(--gold)">India 🇮🇳</div></div>
+      <div class="market-row" style="cursor:pointer" onclick="toast('🤖 AI Model: Claude Sonnet')"><div><div class="mr-lbl">AI Model</div><div class="mr-sub">Coaching intelligence</div></div><div class="mr-val" style="color:var(--gold)">Claude Sonnet</div></div>
+      <div class="market-row" style="cursor:pointer" onclick="toast('🔒 All data stays in your browser')"><div><div class="mr-lbl">Data Privacy</div><div class="mr-sub">No data stored on servers</div></div><div class="mr-val" style="color:var(--green)">Local Only ✓</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SHELL ══ -->
+<div class="shell">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="tb-brand">
+      <div class="tb-logo">💰</div>
+      <div>
+        <div class="tb-name">NegotiateIQ</div>
+        <div class="tb-sub">AI Salary Negotiation Coach</div>
+      </div>
+    </div>
+    <div class="tb-center">
+      <div class="phase-pill active" id="ph1">① Profile</div>
+      <div class="phase-arrow">›</div>
+      <div class="phase-pill" id="ph2">② Strategy</div>
+      <div class="phase-arrow">›</div>
+      <div class="phase-pill" id="ph3">③ Practice</div>
+    </div>
+    <div class="tb-right">
+      <div class="ai-badge"><div class="ai-dot"></div>AI Coach Ready</div>
+      <div class="tb-clock" id="clock">--:--</div>
+    </div>
+  </header>
+
+  <!-- NAV RAIL -->
+  <nav class="nav-rail">
+    <div class="ri on" onclick="setNav(this)"><div class="ri-ico">🏠</div><div class="ri-lbl">Home</div></div>
+    <div class="ri" onclick="openM('marketModal');setNav(this)"><div class="ri-ico">📊</div><div class="ri-lbl">Market</div></div>
+    <div class="ri" onclick="openM('scriptsModal');setNav(this)"><div class="ri-ico">🎙️</div><div class="ri-lbl">Scripts</div></div>
+    <div class="ri" onclick="openM('checkModal');setNav(this)"><div class="ri-ico">✅</div><div class="ri-lbl">Checklist</div></div>
+    <div class="ri" onclick="openM('resourcesModal');setNav(this)"><div class="ri-ico">📚</div><div class="ri-lbl">Research</div></div>
+    <div class="rail-sep"></div>
+    <div class="ri" onclick="openM('settingsModal');setNav(this)"><div class="ri-ico">⚙️</div><div class="ri-lbl">Settings</div></div>
+  </nav>
+
+  <!-- LEFT: PROFILE INPUT -->
+  <aside class="left-panel">
+    <div class="lp-head">
+      <div class="lp-title">Your Profile</div>
+      <div class="lp-sub">Fill in your details to get a personalized strategy</div>
+    </div>
+    <div class="lp-body">
+
+      <div class="field">
+        <label class="f-label">Current Job Title</label>
+        <input class="f-input" id="jobTitle" placeholder="e.g. Software Engineer" value="Software Engineer"/>
+      </div>
+
+      <div class="field f-row">
+        <div>
+          <label class="f-label">Experience (Years)</label>
+          <input class="f-input" id="expYears" type="number" placeholder="3" value="3" min="0" max="40"/>
+        </div>
+        <div>
+          <label class="f-label">Industry</label>
+          <select class="f-select" id="industry">
+            <option>Technology</option>
+            <option>Finance</option>
+            <option>Healthcare</option>
+            <option>Marketing</option>
+            <option>Consulting</option>
+            <option>E-commerce</option>
+            <option>EdTech</option>
+            <option>Manufacturing</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="f-label">Current CTC (₹ LPA)</label>
+        <input class="f-input" id="currentCTC" type="number" placeholder="12" value="12" oninput="updateSalaryLabel()"/>
+        <div class="salary-display" id="ctcDisplay">₹ 12,00,000 / year</div>
+      </div>
+
+      <div class="field">
+        <label class="f-label">Offer / Target CTC (₹ LPA)</label>
+        <input class="f-input" id="offerCTC" type="number" placeholder="18" value="18" oninput="updateSalaryLabel()"/>
+        <div class="salary-display" id="offerDisplay">₹ 18,00,000 / year</div>
+      </div>
+
+      <div class="field">
+        <label class="f-label">Company Type</label>
+        <select class="f-select" id="companyType">
+          <option>MNC (Large)</option>
+          <option>Indian Startup</option>
+          <option>Product Company</option>
+          <option>Service Company</option>
+          <option>Mid-size Company</option>
+          <option>FAANG / Big Tech</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="f-label">City / Location</label>
+        <select class="f-select" id="city">
+          <option>Bangalore</option>
+          <option>Mumbai</option>
+          <option>Delhi / NCR</option>
+          <option>Hyderabad</option>
+          <option>Chennai</option>
+          <option>Madurai</option>
+          <option>Pune</option>
+          <option>Other</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="f-label">Top Skills (select all that apply)</label>
+        <div class="skills-wrap" id="skillsWrap">
+          <div class="skill-tag sel" onclick="toggleSkill(this)">Python</div>
+          <div class="skill-tag sel" onclick="toggleSkill(this)">React</div>
+          <div class="skill-tag" onclick="toggleSkill(this)">Node.js</div>
+          <div class="skill-tag" onclick="toggleSkill(this)">AWS</div>
+          <div class="skill-tag" onclick="toggleSkill(this)">Machine Learning</div>
+          <div class="skill-tag" onclick="toggleSkill(this)">SQL</div>
+          <div class="skill-tag" onclick="toggleSkill(this)">Docker</div>
+          <div class="skill-tag" onclick="toggleSkill(this)">Leadership</div>
+          <div class="skill-tag" onclick="toggleSkill(this)">System Design</div>
+          <div class="skill-tag" onclick="toggleSkill(this)">Product Management</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="f-label">Your Key Achievement (optional but powerful)</label>
+        <textarea class="f-textarea" id="achievement" rows="3" placeholder="e.g. Reduced system downtime by 40%, led a team of 6, launched a feature used by 100K users...">Led migration of legacy system saving ₹50L annually and reducing downtime by 60%</textarea>
+      </div>
+
+      <div class="divider"></div>
+
+      <button class="btn-analyze" id="analyzeBtn" onclick="runAnalysis()">
+        ⚡ Generate My Negotiation Strategy
+      </button>
+
+    </div>
+  </aside>
+
+  <!-- CENTER: STRATEGY -->
+  <main class="center-panel">
+    <div class="cp-head">
+      <div>
+        <div class="cp-title">Negotiation Strategy Board</div>
+        <div class="cp-sub">AI-generated salary strategy & talking points</div>
+      </div>
+      <div class="salary-meter">
+        <span class="meter-lbl">Leverage Score</span>
+        <div class="meter-bar"><div class="meter-fill" id="leverageFill" style="width:0%"></div></div>
+        <span class="meter-val" id="leverageVal">—</span>
+      </div>
+    </div>
+    <div class="cp-body" id="stratBody">
+      <div class="empty-state">
+        <div class="empty-icon">💰</div>
+        <div class="empty-txt">Fill your profile on the left and click<br/><strong style="color:var(--gold)">Generate My Negotiation Strategy</strong><br/>to get your personalized plan.</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT: AI COACH -->
+  <aside class="right-panel">
+    <div class="rp-head">
+      <div class="rp-title">💬 AI Negotiation Coach</div>
+      <div class="rp-sub">Powered by Claude AI · Ask anything · Real-time coaching</div>
+      <div class="rp-status"><div class="rp-dot"></div><div class="rp-stxt">Ready to coach you to a higher salary 💰</div></div>
+    </div>
+
+    <div class="chips">
+      <div class="chip" onclick="askChip('What is the best opening line to negotiate salary?')">💬 Opening line</div>
+      <div class="chip" onclick="askChip('They said the salary is fixed. What do I do?')">🚫 Salary fixed?</div>
+      <div class="chip" onclick="askChip('How do I negotiate without losing the offer?')">⚖️ Without losing offer</div>
+      <div class="chip" onclick="askChip('What can I negotiate besides salary?')">🎁 Beyond salary</div>
+      <div class="chip" onclick="askChip('How do I handle the current salary question?')">❓ Current salary Q</div>
+    </div>
+
+    <div class="chat-feed" id="chatFeed">
+      <div class="msg ai">
+        <div class="msg-from">NegotiateIQ Coach · Powered by Claude</div>
+        Hey! 💰 I'm your personal salary negotiation coach. I've helped people negotiate an average of 23% higher salaries. Fill in your profile and I'll build your full strategy — or ask me anything right now. What do you want to tackle first?
+      </div>
+    </div>
+
+    <div class="chat-foot">
+      <textarea class="chat-inp" id="chatInp" rows="2"
+        placeholder="Ask me anything about salary negotiation..."
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="sendMsg()">→</button>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+/* ── CLOCK ── */
+function tick(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}
+tick();setInterval(tick,1000);
+
+/* ── SALARY DISPLAY ── */
+function fmt(v){return '₹ '+Number(v||0).toLocaleString('en-IN')+'L / year'}
+function updateSalaryLabel(){
+  const c=document.getElementById('currentCTC').value;
+  const o=document.getElementById('offerCTC').value;
+  document.getElementById('ctcDisplay').textContent='₹ '+(c*100000).toLocaleString('en-IN')+' / year';
+  document.getElementById('offerDisplay').textContent='₹ '+(o*100000).toLocaleString('en-IN')+' / year';
+}
+
+/* ── SKILL TOGGLE ── */
+function toggleSkill(el){el.classList.toggle('sel')}
+
+/* ── NAV ── */
+function setNav(el){document.querySelectorAll('.ri').forEach(i=>i.classList.remove('on'));el.classList.add('on')}
+
+/* ── MODALS ── */
+function openM(id){document.getElementById(id).classList.add('open')}
+function closeM(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')});
+});
+
+/* ── CHECKLIST ── */
+function toggleCheck(el){
+  el.classList.toggle('checked');
+  el.querySelector('.chk-box').textContent=el.classList.contains('checked')?'✓':'';
+  const total=document.querySelectorAll('.check-item').length;
+  const done=document.querySelectorAll('.check-item.checked').length;
+  document.getElementById('checkProgress').textContent=`${done} / ${total} completed`;
+}
+
+/* ── TOAST ── */
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+/* ── MAIN ANALYSIS ── */
+async function runAnalysis(){
+  const btn=document.getElementById('analyzeBtn');
+  btn.disabled=true;btn.innerHTML='⏳ Analyzing...';
+
+  const title=document.getElementById('jobTitle').value||'Professional';
+  const exp=document.getElementById('expYears').value||'3';
+  const industry=document.getElementById('industry').value;
+  const current=document.getElementById('currentCTC').value||'0';
+  const offer=document.getElementById('offerCTC').value||'0';
+  const company=document.getElementById('companyType').value;
+  const city=document.getElementById('city').value;
+  const skills=[...document.querySelectorAll('.skill-tag.sel')].map(s=>s.textContent).join(', ')||'General skills';
+  const achievement=document.getElementById('achievement').value||'Strong track record';
+
+  const hike=Math.round(((offer-current)/current)*100);
+
+  document.getElementById('ph1').className='phase-pill done';
+  document.getElementById('ph2').className='phase-pill active';
+
+  document.getElementById('stratBody').innerHTML=`
+    <div class="loading-state">
+      <div class="spin"></div>
+      <div class="load-steps">
+        <div class="load-step">→ Analyzing your market position...</div>
+        <div class="load-step">→ Calculating salary leverage...</div>
+        <div class="load-step">→ Building negotiation strategy...</div>
+      </div>
+    </div>`;
+
+  try{
+    const prompt=`You are an elite salary negotiation coach with 20 years experience in India's job market. Be direct, tactical, and specific with numbers.
+
+CANDIDATE PROFILE:
+- Role: ${title}
+- Experience: ${exp} years
+- Industry: ${industry}
+- Current CTC: ₹${current}L per annum
+- Offer/Target CTC: ₹${offer}L per annum (${hike}% hike)
+- Company Type: ${company}
+- City: ${city}
+- Key Skills: ${skills}
+- Key Achievement: ${achievement}
+
+Respond ONLY with valid JSON, no markdown:
+{
+  "leverageScore": <integer 0-100>,
+  "marketAssessment": "<2 sentences: is the offer fair, below or above market for this profile in India 2025?>",
+  "minimumTarget": <number in LPA>,
+  "realisticTarget": <number in LPA>,
+  "stretchTarget": <number in LPA>,
+  "strategies": [
+    {
+      "type": "Opening Move",
+      "icon": "🎯",
+      "color": "#f5c842",
+      "title": "<specific tactic title>",
+      "description": "<2 sentences explaining the tactic>",
+      "script": "<exact word-for-word script they should say to the HR/manager>"
+    },
+    {
+      "type": "Leverage Point",
+      "icon": "💪",
+      "color": "#22c55e",
+      "title": "<leverage tactic title>",
+      "description": "<2 sentences>",
+      "script": "<exact script>"
+    },
+    {
+      "type": "Counter Strategy",
+      "icon": "⚡",
+      "color": "#3b82f6",
+      "title": "<counter tactic title>",
+      "description": "<2 sentences>",
+      "script": "<exact script>"
+    },
+    {
+      "type": "Package Expansion",
+      "icon": "🎁",
+      "color": "#a78bfa",
+      "title": "<benefits negotiation title>",
+      "description": "<2 sentences on what else to negotiate>",
+      "script": "<exact script>"
+    }
+  ],
+  "marketData": [
+    {"label": "Market Median for ${title} in ${city}", "value": "<₹XL>", "color": "#f5c842"},
+    {"label": "Top 25% Earners", "value": "<₹XL>", "color": "#22c55e"},
+    {"label": "Your Current CTC", "value": "₹${current}L", "color": "#5a6480"},
+    {"label": "Offer on Table", "value": "₹${offer}L", "color": "#3b82f6"}
+  ],
+  "winningAdvice": "<One powerful, specific, personalized closing tip for this exact candidate based on their profile>"
+}`;
+
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,
+        messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    const raw=data.content.map(b=>b.text||'').join('').trim();
+    const r=JSON.parse(raw.replace(/```json|```/g,'').trim());
+
+    // Update leverage meter
+    document.getElementById('leverageFill').style.width=r.leverageScore+'%';
+    const lc=r.leverageScore>70?'var(--green)':r.leverageScore>40?'var(--gold)':'var(--red)';
+    document.getElementById('leverageVal').textContent=r.leverageScore+'%';
+    document.getElementById('leverageVal').style.color=lc;
+
+    document.getElementById('ph2').className='phase-pill done';
+    document.getElementById('ph3').className='phase-pill active';
+
+    document.getElementById('stratBody').innerHTML=`
+      <!-- Market Assessment -->
+      <div style="background:var(--p1);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;border-left:3px solid var(--gold)">
+        <div style="font-size:.56rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);font-family:'DM Mono',monospace;margin-bottom:7px">📈 Market Assessment</div>
+        <div style="font-size:.8rem;color:var(--gold3);line-height:1.7">${r.marketAssessment}</div>
+      </div>
+
+      <!-- Salary Ranges -->
+      <div style="font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px">🎯 Your Salary Targets</div>
+      <div class="range-grid">
+        <div class="range-card">
+          <div class="range-val" style="color:var(--muted2)">₹${r.minimumTarget}L</div>
+          <div class="range-lbl">Minimum Accept</div>
+          <div class="range-badge" style="background:rgba(90,100,128,.15);color:var(--muted2)">Walk away below this</div>
+        </div>
+        <div class="range-card" style="border-color:rgba(245,200,66,.3);background:rgba(245,200,66,.04)">
+          <div class="range-val" style="color:var(--gold)">₹${r.realisticTarget}L</div>
+          <div class="range-lbl">Realistic Target</div>
+          <div class="range-badge" style="background:rgba(245,200,66,.12);color:var(--gold)">Most likely outcome</div>
+        </div>
+        <div class="range-card" style="border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.04)">
+          <div class="range-val" style="color:var(--green)">₹${r.stretchTarget}L</div>
+          <div class="range-lbl">Stretch Target</div>
+          <div class="range-badge" style="background:rgba(34,197,94,.12);color:var(--green)">Open with this</div>
+        </div>
+      </div>
+
+      <!-- Market Data -->
+      <div style="font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin:14px 0 10px">📊 Market Benchmarks</div>
+      ${r.marketData.map(m=>`
+      <div class="market-row">
+        <div><div class="mr-lbl">${m.label}</div></div>
+        <div class="mr-val" style="color:${m.color}">${m.value}</div>
+      </div>`).join('')}
+
+      <!-- Strategies -->
+      <div style="font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin:16px 0 10px">⚡ Your Negotiation Playbook</div>
+      ${r.strategies.map(s=>`
+      <div class="strat-card" style="border-color:${s.color}">
+        <div class="sc-type" style="color:${s.color}">${s.icon} ${s.type}</div>
+        <div class="sc-title">${s.title}</div>
+        <div class="sc-desc">${s.description}</div>
+        <div class="sc-script">"${s.script}"</div>
+      </div>`).join('')}
+
+      <!-- Winning Tip -->
+      <div style="background:linear-gradient(135deg,rgba(245,200,66,.1),rgba(34,197,94,.07));border:1px solid rgba(245,200,66,.25);border-radius:14px;padding:16px;margin-top:4px">
+        <div style="font-size:.56rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);font-family:'DM Mono',monospace;margin-bottom:7px">🏆 Your Winning Advice</div>
+        <div style="font-size:.82rem;color:var(--gold3);line-height:1.7;font-style:italic">${r.winningAdvice}</div>
+      </div>
+      <div style="height:16px"></div>`;
+
+    // Pre-fill chat with context
+    askChipDirect(`I'm a ${title} with ${exp} years experience. My current CTC is ₹${current}L and they've offered ₹${offer}L. My leverage score is ${r.leverageScore}%. What's my best first move?`);
+
+  }catch(e){
+    console.error(e);
+    document.getElementById('stratBody').innerHTML=`<div style="padding:20px;color:var(--red);font-size:.8rem">⚠️ Analysis failed. Please try again.</div>`;
+  }finally{
+    btn.disabled=false;btn.innerHTML='⚡ Regenerate Strategy';
+  }
+}
+
+/* ── AI CHAT ── */
+function askChip(q){document.getElementById('chatInp').value=q;sendMsg()}
+function askChipDirect(q){
+  const feed=document.getElementById('chatFeed');
+  const uDiv=document.createElement('div');uDiv.className='msg user';uDiv.textContent=q;
+  feed.appendChild(uDiv);feed.scrollTop=feed.scrollHeight;
+  sendMsgWithQ(q);
+}
+
+async function sendMsg(){
+  const inp=document.getElementById('chatInp');
+  const q=inp.value.trim();if(!q)return;
+  const feed=document.getElementById('chatFeed');
+  const btn=document.getElementById('sendBtn');
+  const uDiv=document.createElement('div');uDiv.className='msg user';uDiv.textContent=q;
+  feed.appendChild(uDiv);feed.scrollTop=feed.scrollHeight;
+  inp.value='';btn.disabled=true;
+  await sendMsgWithQ(q,btn);
+}
+
+async function sendMsgWithQ(q,btn){
+  const feed=document.getElementById('chatFeed');
+  const typing=document.createElement('div');
+  typing.className='msg ai';typing.id='typing';
+  typing.innerHTML='<div class="msg-from">NegotiateIQ Coach</div>💭 coaching...';
+  feed.appendChild(typing);feed.scrollTop=feed.scrollHeight;
+
+  const title=document.getElementById('jobTitle').value||'Professional';
+  const exp=document.getElementById('expYears').value||'3';
+  const current=document.getElementById('currentCTC').value||'0';
+  const offer=document.getElementById('offerCTC').value||'0';
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,
+        messages:[{role:'user',content:`You are NegotiateIQ — an elite salary negotiation coach specialized in India's job market.
+
+Candidate context: ${title}, ${exp} years experience, current CTC ₹${current}L, target ₹${offer}L in India.
+Rules: Be direct, tactical, specific. Give exact scripts when useful. Use ₹ for salary figures. Under 120 words. End with one actionable next step.
+
+Question: "${q}"`}]})
+    });
+    const data=await res.json();
+    const reply=data.content.map(b=>b.text||'').join('').trim();
+    document.getElementById('typing')?.remove();
+    const aDiv=document.createElement('div');aDiv.className='msg ai';
+    aDiv.innerHTML=`<div class="msg-from">NegotiateIQ Coach · Claude AI</div>${reply}`;
+    feed.appendChild(aDiv);feed.scrollTop=feed.scrollHeight;
+  }catch(e){
+    document.getElementById('typing')?.remove();
+    const aDiv=document.createElement('div');aDiv.className='msg ai';
+    aDiv.innerHTML=`<div class="msg-from">NegotiateIQ Coach</div>Always remember: the first offer is never the final offer. Counter with confidence, justify with data, and never apologize for knowing your worth. 💰`;
+    feed.appendChild(aDiv);feed.scrollTop=feed.scrollHeight;
+  }finally{if(btn)btn.disabled=false;}
+}
+</script>
+</body>
+</html>
